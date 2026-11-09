@@ -1,0 +1,495 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#171513"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}[hidden]{display:none!important}</style></head><body><title>Câmera Tarcilla &amp; Matheus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Pinyon+Script&family=Jost:wght@300;400;500&display=swap">
+<style>
+/* Layout: one-screen camera app. Header strip, a 9:16 stage that fills the remaining height, control deck at the bottom. */
+:root{
+  --night:#171513;
+  --night-2:#24201c;
+  --ivory:#f4efe7;
+  --champagne:#cfba92;
+  --mute:#9b9287;
+  --line:rgba(244,239,231,.16);
+  --f-script:"Pinyon Script","Snell Roundhand","Apple Chancery",cursive;
+  --f-display:"Cormorant Garamond","Cormorant",Garamond,"Times New Roman",serif;
+  --f-ui:"Jost","Futura","Avenir Next","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--night);color:var(--ivory);font-family:var(--f-ui);overflow:hidden;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box}
+.app{height:100%;max-width:560px;margin:0 auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:12px;padding-block:10px 14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.top{display:flex;align-items:center;gap:12px;min-width:0}
+.top img{height:30px;width:auto;flex:none}
+.top-txt{display:flex;flex-direction:column;min-width:0;line-height:1.1}
+.eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute)}
+.names{font-family:var(--f-script);font-weight:400;font-size:24px;padding-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.date{margin-left:auto;font-size:12px;letter-spacing:.16em;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.stage{position:relative;display:grid;place-items:center;min-height:0;min-width:0}
+.stage canvas,.stage img.shot{display:block;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);background:var(--night-2)}
+.stage img.shot{-webkit-touch-callout:default;user-select:auto}
+.count{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-size:min(36vw,170px);font-weight:400;color:var(--ivory);text-shadow:0 4px 30px rgba(0,0,0,.5);pointer-events:none}
+.flash{position:absolute;inset:0;background:var(--ivory);opacity:0;pointer-events:none;border-radius:14px}
+.flash.on{animation:flash .45s ease-out}
+@keyframes flash{0%{opacity:.85}100%{opacity:0}}
+
+.deck{display:flex;flex-direction:column;align-items:center;gap:14px}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.chip{font:500 11px/1 var(--f-ui);letter-spacing:.16em;text-transform:uppercase;color:var(--ivory);background:transparent;border:1px solid var(--line);border-radius:999px;padding:9px 14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--champagne);border-color:var(--champagne);color:var(--night)}
+.chip-sep{width:1px;background:var(--line);margin:4px 2px}
+
+.row{display:flex;align-items:center;justify-content:center;gap:28px;width:100%}
+.round{width:50px;height:50px;border-radius:50%;border:1px solid var(--line);background:rgba(244,239,231,.06);color:var(--ivory);display:grid;place-items:center;cursor:pointer;padding:0}
+.round svg{width:22px;height:22px}
+.round.ghosted{visibility:hidden}
+.shutter{width:78px;height:78px;border-radius:50%;border:3px solid var(--champagne);background:transparent;padding:5px;cursor:pointer;display:grid;place-items:center}
+.shutter span{display:block;width:100%;height:100%;border-radius:50%;background:var(--ivory);transition:transform .12s ease}
+.shutter:active span{transform:scale(.88)}
+
+.row.rev{gap:10px;flex-wrap:wrap}
+.btn{font:500 13px/1 var(--f-ui);letter-spacing:.12em;text-transform:uppercase;border-radius:999px;padding:15px 20px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ivory)}
+.btn.solid{background:var(--champagne);border-color:var(--champagne);color:var(--night)}
+
+.note{margin:0;font-size:12.5px;line-height:1.45;color:var(--mute);text-align:center;max-width:36ch;text-wrap:balance}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ivory);color:var(--night);font-size:13px;padding:11px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px);text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+button:focus-visible{outline:2px solid var(--champagne);outline-offset:3px}
+#vid{position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:0;top:0}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <img id="monoTop" alt="Monograma T&amp;M">
+    <div class="top-txt">
+      <span class="eyebrow">Câmera do casamento</span>
+      <span class="names">Tarcilla &amp; Matheus</span>
+    </div>
+    <span class="date">21.11.2026</span>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="view" width="540" height="960" aria-label="Pré-visualização da foto com a moldura do casamento"></canvas>
+    <img class="shot" id="shot" alt="Sua foto com a moldura do casamento" hidden>
+    <div class="flash" id="flash"></div>
+    <div class="count" id="count" hidden></div>
+  </main>
+
+  <footer class="deck">
+    <div class="chips" id="chips">
+      <button class="chip" id="stClassica" aria-pressed="true">Clássica</button>
+      <button class="chip" id="stDelicada" aria-pressed="false">Delicada</button>
+      <span class="chip-sep" aria-hidden="true"></span>
+      <button class="chip" id="btnTimer" aria-pressed="false">Timer 3s</button>
+    </div>
+
+    <div class="row cam" id="camRow">
+      <button class="round" id="btnGallery" aria-label="Escolher foto da galeria">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5.2-5.2L6 20"/></svg>
+      </button>
+      <button class="shutter" id="btnShutter" aria-label="Tirar foto"><span></span></button>
+      <button class="round" id="btnFlip" aria-label="Trocar entre câmera frontal e traseira">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10H4z"/><path d="M9.2 13.4a3 3 0 0 1 5.4-1.4"/><path d="M14.8 14.6a3 3 0 0 1-5.4 1.4"/><path d="M14.8 10.6v1.6h-1.6"/><path d="M9.2 17.4v-1.6h1.6"/></svg>
+      </button>
+    </div>
+
+    <div class="row rev" id="revRow" hidden>
+      <button class="btn" id="btnAgain">Tirar outra</button>
+      <button class="btn" id="btnSave">Salvar</button>
+      <button class="btn solid" id="btnShare">Compartilhar</button>
+    </div>
+
+    <p class="note" id="note">Escolha a moldura, tire sua foto e poste nos Stories.</p>
+  </footer>
+</div>
+
+<input type="file" id="fileCam" accept="image/*" capture="user" hidden>
+<input type="file" id="fileGal" accept="image/*" hidden>
+<video id="vid" playsinline muted autoplay></video>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  const MONO = new Image();
+  MONO.src = "data:image/png;base64,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";
+  document.getElementById('monoTop').src = MONO.src;
+
+  const W = 1080, H = 1920;
+  const $ = id => document.getElementById(id);
+  const view = $('view'), vctx = view.getContext('2d');
+  const vid = $('vid'), stage = $('stage'), shot = $('shot');
+
+  let style = 'classica', timer = false, facing = 'user';
+  let stream = null, live = false, rafId = 0, busy = false;
+  let downloads = null, lastBlob = null, lastUrl = null;
+
+  const fontsReady = (document.fonts && document.fonts.load)
+    ? Promise.all([
+        document.fonts.load('400 60px "Pinyon Script"'),
+        document.fonts.load('400 60px "Cormorant Garamond"'),
+        document.fonts.load('400 30px "Jost"')
+      ]).catch(() => {})
+    : Promise.resolve();
+
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('downloads').then(d => { downloads = d; }).catch(() => {});
+  }
+
+  /* ---------- desenho ---------- */
+  function cover(ctx, src, sw, sh, w, h, mirror){
+    const s = Math.max(w / sw, h / sh), dw = sw * s, dh = sh * s;
+    ctx.save();
+    if (mirror){ ctx.translate(w, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(src, (w - dw) / 2, (h - dh) / 2, dw, dh);
+    ctx.restore();
+  }
+
+  function spaced(ctx, text, cx, y, spacing){
+    const chars = [...text];
+    const ws = chars.map(c => ctx.measureText(c).width);
+    const total = ws.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
+    let x = cx - total / 2;
+    ctx.textAlign = 'left';
+    chars.forEach((c, i) => { ctx.fillText(c, x, y); x += ws[i] + spacing; });
+    return total;
+  }
+
+  function measureSpaced(ctx, text, spacing){
+    const chars = [...text];
+    return chars.reduce((a, c) => a + ctx.measureText(c).width, 0) + spacing * (chars.length - 1);
+  }
+
+  function drawFrame(ctx, w, h, st){
+    const k = w / 1080;
+    ctx.save();
+    let g = ctx.createLinearGradient(0, 0, 0, h * 0.26);
+    g.addColorStop(0, 'rgba(14,11,9,.45)'); g.addColorStop(1, 'rgba(14,11,9,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h * 0.26);
+    g = ctx.createLinearGradient(0, h, 0, h * 0.66);
+    g.addColorStop(0, 'rgba(14,11,9,.6)'); g.addColorStop(1, 'rgba(14,11,9,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, h * 0.66, w, h * 0.34);
+
+    ctx.shadowColor = 'rgba(0,0,0,.28)';
+    ctx.shadowBlur = 12 * k;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = 'rgba(255,255,255,.92)';
+    const date = '21 · 11 · 2026';
+
+    if (st === 'classica'){
+      const m = 48 * k, lw = 2.4 * k;
+      ctx.lineWidth = lw;
+      // data no meio da linha de baixo
+      ctx.font = `400 ${30 * k}px Jost, "Avenir Next", sans-serif`;
+      ctx.textBaseline = 'middle';
+      const dw = measureSpaced(ctx, date, 9 * k);
+      const gap = dw / 2 + 30 * k;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - gap, h - m);
+      ctx.lineTo(m, h - m);
+      ctx.lineTo(m, m);
+      ctx.lineTo(w - m, m);
+      ctx.lineTo(w - m, h - m);
+      ctx.lineTo(w / 2 + gap, h - m);
+      ctx.stroke();
+      spaced(ctx, date, w / 2, h - m, 9 * k);
+
+      if (MONO.complete && MONO.naturalWidth){
+        const mw = 250 * k, mh = mw * MONO.naturalHeight / MONO.naturalWidth;
+        ctx.drawImage(MONO, (w - mw) / 2, m + 70 * k, mw, mh);
+      }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = `400 ${104 * k}px "Pinyon Script", "Snell Roundhand", "Apple Chancery", cursive`;
+      ctx.fillText('Tarcilla & Matheus', w / 2, h - m - 96 * k);
+    } else {
+      const dateY = h - 120 * k;
+      if (MONO.complete && MONO.naturalWidth){
+        const mw = 180 * k, mh = mw * MONO.naturalHeight / MONO.naturalWidth;
+        ctx.drawImage(MONO, (w - mw) / 2, dateY - 52 * k - mh, mw, mh);
+      }
+      ctx.font = `400 ${27 * k}px Jost, "Avenir Next", sans-serif`;
+      ctx.textBaseline = 'middle';
+      spaced(ctx, date, w / 2, dateY, 9 * k);
+    }
+    ctx.restore();
+  }
+
+  function drawPlaceholder(ctx, w, h){
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#3b342e'); g.addColorStop(1, '#1c1916');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.save();
+    ctx.fillStyle = 'rgba(244,239,231,.72)';
+    ctx.font = `400 ${w * 0.036}px Jost, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Toque no botão abaixo', w / 2, h * 0.47);
+    ctx.fillText('para tirar sua foto', w / 2, h * 0.47 + w * 0.055);
+    ctx.restore();
+  }
+
+  function loop(){
+    vctx.clearRect(0, 0, view.width, view.height);
+    if (live && vid.readyState >= 2 && vid.videoWidth){
+      cover(vctx, vid, vid.videoWidth, vid.videoHeight, view.width, view.height, facing === 'user');
+    } else {
+      drawPlaceholder(vctx, view.width, view.height);
+    }
+    drawFrame(vctx, view.width, view.height, style);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  /* ---------- tamanho ---------- */
+  function fit(){
+    const r = stage.getBoundingClientRect();
+    let h = r.height, w = h * 9 / 16;
+    if (w > r.width){ w = r.width; h = w * 16 / 9; }
+    [view, shot].forEach(el => { el.style.width = Math.floor(w) + 'px'; el.style.height = Math.floor(h) + 'px'; });
+  }
+  window.addEventListener('resize', fit);
+
+  /* ---------- câmera ---------- */
+  function stopStream(){
+    if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+
+  async function startCamera(){
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){ setLive(false); return; }
+    try {
+      stopStream();
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+      vid.srcObject = stream;
+      await vid.play();
+      setLive(true);
+    } catch (e){
+      setLive(false);
+    }
+  }
+
+  function setLive(on){
+    live = on;
+    $('btnFlip').classList.toggle('ghosted', false);
+    $('btnFlip').setAttribute('aria-label', on ? 'Trocar entre câmera frontal e traseira' : 'Trocar para câmera ' + (facing === 'user' ? 'traseira' : 'frontal'));
+  }
+
+  /* ---------- captura ---------- */
+  function flash(){
+    const f = $('flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+  }
+
+  function countdown(n){
+    return new Promise(res => {
+      const c = $('count'); c.hidden = false;
+      const tick = () => {
+        if (n === 0){ c.hidden = true; res(); return; }
+        c.textContent = n; n--; setTimeout(tick, 1000);
+      };
+      tick();
+    });
+  }
+
+  async function compose(src, sw, sh, mirror){
+    await fontsReady;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#1c1916'; ctx.fillRect(0, 0, W, H);
+    cover(ctx, src, sw, sh, W, H, mirror);
+    drawFrame(ctx, W, H, style);
+    return new Promise(res => cv.toBlob(b => res(b), 'image/jpeg', 0.92));
+  }
+
+  async function shoot(){
+    if (busy) return;
+    if (!live){
+      const inp = $('fileCam');
+      inp.setAttribute('capture', facing === 'user' ? 'user' : 'environment');
+      inp.click();
+      return;
+    }
+    busy = true;
+    try {
+      if (timer) await countdown(3);
+      flash();
+      const blob = await compose(vid, vid.videoWidth, vid.videoHeight, facing === 'user');
+      showReview(blob);
+    } finally { busy = false; }
+  }
+
+  function readAsDataURL(blob){
+    return new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.onerror = () => rej(fr.error);
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  function loadImg(src){
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => (img.naturalWidth ? res(img) : rej(new Error('vazia')));
+      img.onerror = () => rej(new Error('falhou'));
+      img.src = src;
+    });
+  }
+
+  function loadScript(src){
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  // Tenta várias formas de ler a foto, do jeito mais rápido ao mais compatível
+  async function decodeOnce(blob){
+    if (window.createImageBitmap){
+      try {
+        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+        return { src: bmp, w: bmp.width, h: bmp.height };
+      } catch (e){}
+      try {
+        const bmp = await createImageBitmap(blob);
+        return { src: bmp, w: bmp.width, h: bmp.height };
+      } catch (e){}
+    }
+    try {
+      const url = URL.createObjectURL(blob);
+      try { const img = await loadImg(url); return { src: img, w: img.naturalWidth, h: img.naturalHeight, revoke: url }; }
+      catch (e){ URL.revokeObjectURL(url); }
+    } catch (e){}
+    const data = await readAsDataURL(blob);
+    const img = await loadImg(data);
+    return { src: img, w: img.naturalWidth, h: img.naturalHeight };
+  }
+
+  async function decode(file){
+    try { return await decodeOnce(file); }
+    catch (e){
+      // Fotos HEIC (padrão do iPhone): converte para JPEG antes de usar
+      if (!window.heic2any){
+        await loadScript('https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js');
+      }
+      const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+      return await decodeOnce(Array.isArray(out) ? out[0] : out);
+    }
+  }
+
+  async function fromFile(file){
+    if (!file || busy) return;
+    busy = true;
+    $('note').textContent = 'Preparando sua foto…';
+    try {
+      const d = await decode(file);
+      const blob = await compose(d.src, d.w, d.h, false);
+      if (d.revoke) URL.revokeObjectURL(d.revoke);
+      if (d.src.close) d.src.close();
+      showReview(blob);
+    } catch (e){
+      $('note').textContent = 'Escolha a moldura, tire sua foto e poste nos Stories.';
+      toast('Não deu para abrir essa foto. Tente tirar de novo ou escolher outra da galeria.');
+    } finally { busy = false; }
+  }
+
+  /* ---------- revisão ---------- */
+  function showReview(blob){
+    if (!blob){ toast('Não deu para gerar a foto. Tente de novo.'); return; }
+    cancelAnimationFrame(rafId);
+    if (lastUrl) URL.revokeObjectURL(lastUrl);
+    lastBlob = blob; lastUrl = URL.createObjectURL(blob);
+    shot.onerror = () => { shot.onerror = null; readAsDataURL(blob).then(u => { shot.src = u; }).catch(() => {}); };
+    shot.src = lastUrl;
+    view.hidden = true; shot.hidden = false;
+    $('camRow').hidden = true; $('chips').hidden = true; $('revRow').hidden = false;
+    $('note').textContent = 'Se o botão não funcionar, toque e segure na foto para salvar.';
+    fit();
+  }
+
+  function backToCamera(){
+    shot.hidden = true; view.hidden = false;
+    $('camRow').hidden = false; $('chips').hidden = false; $('revRow').hidden = true;
+    $('note').textContent = 'Escolha a moldura, tire sua foto e poste nos Stories.';
+    fit();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function fileName(){
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    return `tarcilla-e-matheus-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
+  }
+
+  async function save(){
+    if (!lastBlob) return;
+    const name = fileName();
+    if (downloads){
+      try { await downloads.save({ filename: name, data: lastBlob }); toast('Foto salva.'); }
+      catch (e){ if (!e || e.code !== 'declined') toast('Toque e segure na foto para salvar.'); }
+      return;
+    }
+    try {
+      const a = document.createElement('a');
+      a.href = lastUrl; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Se a foto não aparecer, toque e segure nela para salvar.');
+    } catch (e){
+      toast('Toque e segure na foto para salvar.');
+    }
+  }
+
+  async function share(){
+    if (!lastBlob) return;
+    const file = new File([lastBlob], fileName(), { type: 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })){
+      try { await navigator.share({ files: [file], title: 'Tarcilla & Matheus' }); return; }
+      catch (e){ if (e && e.name === 'AbortError') return; }
+    }
+    save();
+  }
+
+  let toastT = 0;
+  function toast(msg){
+    const t = $('toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200);
+  }
+
+  /* ---------- controles ---------- */
+  function setStyle(s){
+    style = s;
+    $('stClassica').setAttribute('aria-pressed', String(s === 'classica'));
+    $('stDelicada').setAttribute('aria-pressed', String(s === 'delicada'));
+  }
+  $('stClassica').addEventListener('click', () => setStyle('classica'));
+  $('stDelicada').addEventListener('click', () => setStyle('delicada'));
+  $('btnTimer').addEventListener('click', () => {
+    timer = !timer; $('btnTimer').setAttribute('aria-pressed', String(timer));
+  });
+  $('btnShutter').addEventListener('click', shoot);
+  $('btnGallery').addEventListener('click', () => $('fileGal').click());
+  $('btnFlip').addEventListener('click', () => {
+    facing = facing === 'user' ? 'environment' : 'user';
+    if (live) startCamera(); else setLive(false);
+    toast(facing === 'user' ? 'Câmera frontal' : 'Câmera traseira');
+  });
+  $('fileCam').addEventListener('change', e => { fromFile(e.target.files[0]); e.target.value = ''; });
+  $('fileGal').addEventListener('change', e => { fromFile(e.target.files[0]); e.target.value = ''; });
+  $('btnAgain').addEventListener('click', backToCamera);
+  $('btnSave').addEventListener('click', save);
+  $('btnShare').addEventListener('click', share);
+
+  if (!navigator.canShare){ $('btnShare').hidden = true; $('btnSave').classList.add('solid'); }
+
+  fit();
+  rafId = requestAnimationFrame(loop);
+  startCamera();
+})();
+</script>
+</body></html>
